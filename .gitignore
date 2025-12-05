@@ -42,3 +42,7 @@ temp/
 # Cache
 .cache/
 .parcel-cache/
+
+# Google cloud API JSONs
+credentials.json
+token.json

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const { parseRPFRequest } = require("./textToRPF");
 const { sendRFPToVendors } = require("./emailDraft");
 const rpf = require("./models/rpf");
+const { checkEmails } = require("./imapService");
 
 const app = express();
 app.use(express.json());
@@ -45,6 +46,10 @@ app.post("/api/rfp/create-and-send", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+setInterval(() => {
+  checkEmails();
+}, 60000); // Check emails every 60 seconds
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

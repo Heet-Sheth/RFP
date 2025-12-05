@@ -40,4 +40,59 @@ const parseRPFRequest = async (rfpText) => {
   }
 };
 
-module.exports = { parseRPFRequest };
+const parseVendorResponse = async (responseText) => {
+  const prompt = `
+  You are a procurement AI. Extract structured data from this vendor email.
+  
+  CONTEXT:
+  - Today's Date: ${new Date().toISOString().split("T")[0]}
+  - System Currency: INR (All monetary values must be treated as INR)
+
+  EMAIL CONTENT: "${responseText}"
+
+  INSTRUCTIONS:
+  1. DATES: 
+     - If a specific time frame is given ("in 3 days"), calculate the exact YYYY-MM-DD.
+     - If vague ("ASAP", "Immediate"), set "deliveryDate" to null.
+  2. MONEY: 
+     - Remove commas from numbers (e.g., "1,00,000" becomes 100000).
+     - Ignore "$" or other symbols; treat the raw number as INR.
+  3. ITEMS: 
+     - Extract "unitPrice" for a single item.
+  4. FAILURES:
+     - If the vendor declines the bid (e.g. "We cannot quote"), set "isBid" to false.
+
+  OUTPUT JSON SCHEMA (Return ONLY this raw JSON, no markdown):
+  {
+    "isBid": Boolean, 
+    "totalPrice": Number, // null if not found
+    "currency": "INR",    // Hardcoded per requirements
+    "deliveryDate": "YYYY-MM-DD", // null if "ASAP" or vague
+    "deliveryTerm": "String", // e.g. "3-4 weeks", "Immediately"
+    "warranty": "String", 
+    "lineItems": [
+      { 
+        "name": "String", 
+        "unitPrice": Number, 
+        "quantity": Number, 
+        "totalLinePrice": Number, 
+        "specs": "String" 
+      }
+    ]
+  }
+`;
+
+  const response = await genAi.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  try {
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error("Error parsing bid:", error);
+    return {};
+  }
+};
+
+module.exports = { parseRPFRequest, parseVendorResponse };
